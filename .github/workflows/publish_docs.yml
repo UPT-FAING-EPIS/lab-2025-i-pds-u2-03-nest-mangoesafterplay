@@ -1,0 +1,55 @@
+name: 📝 Generar y Publicar Documentación en GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      # 📚 Generar documentación para atm
+      - name: 📦 Instalar dependencias - atm
+        working-directory: atm
+        run: npm ci
+
+      - name: 🧾 Generar documentación - atm
+        working-directory: atm
+        run: npx compodoc -p tsconfig.json -d documentation
+
+      # 📚 Generar documentación para payment
+      - name: 📦 Instalar dependencias - payment
+        working-directory: payment
+        run: npm ci
+
+      - name: 🧾 Generar documentación - payment
+        working-directory: payment
+        run: npx compodoc -p tsconfig.json -d documentation
+
+      # 🗂️ Unir documentación en una carpeta
+      - name: 🗃️ Preparar documentación combinada
+        run: |
+          mkdir -p combined-docs/atm
+          mkdir -p combined-docs/payment
+          cp -r atm/documentation/* combined-docs/atm
+          cp -r payment/documentation/* combined-docs/payment
+
+      # 🚀 Publicar en GitHub Pages
+      - name: 🌐 Deploy en GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./combined-docs

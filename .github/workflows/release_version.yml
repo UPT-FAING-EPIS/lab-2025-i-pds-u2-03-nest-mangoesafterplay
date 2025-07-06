@@ -1,0 +1,68 @@
+name: 🚀 Build and Publish Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📥 Checkout repositorio
+        uses: actions/checkout@v3
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          registry-url: 'https://npm.pkg.github.com/'
+          scope: '@${{ github.repository_owner }}'
+
+      # ========================
+      # 🔹 ATM
+      # ========================
+      - name: 📦 Instalar dependencias - atm
+        working-directory: atm
+        run: npm ci
+
+      - name: 🏗️ Construir paquete - atm/libs/domain
+        working-directory: atm/libs/domain
+        run: |
+          npm version patch --no-git-tag-version
+          npm pack
+          mv *.tgz ../../../atm_domain.tgz
+
+      # ========================
+      # 🔹 Payment
+      # ========================
+      - name: 📦 Instalar dependencias - payment
+        working-directory: payment
+        run: npm ci
+
+      - name: 🏗️ Construir paquete - payment/libs/domain
+        working-directory: payment/libs/domain
+        run: |
+          npm version patch --no-git-tag-version
+          npm pack
+          mv *.tgz ../../../payment_domain.tgz
+
+      # ========================
+      # 📦 Publicar Release
+      # ========================
+      - name: 🗃️ Crear GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: "Release v1.0.${{ github.run_number }}"
+          body: |
+            🔖 Versión automática publicada desde GitHub Actions.
+            - 📁 `atm/libs/domain` → `atm_domain.tgz`
+            - 📁 `payment/libs/domain` → `payment_domain.tgz`
+          files: |
+            atm_domain.tgz
+            payment_domain.tgz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

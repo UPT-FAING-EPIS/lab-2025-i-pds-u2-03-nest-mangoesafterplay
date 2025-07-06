@@ -1,0 +1,118 @@
+name: Ejecutar pruebas unitarias
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  run-tests:
+    name: Pruebas unitarias - atm y payment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v3
+
+      - name: 🟢 Configurar Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      # ========================
+      # 🔹 ATM
+      # ========================
+      - name: 📦 Instalar dependencias - atm
+        working-directory: atm
+        run: npm ci
+
+      - name: 🧪 Ejecutar pruebas - atm
+        working-directory: atm
+        run: npm run test:cov
+
+      # ========================
+      # 🔹 Payment
+      # ========================
+      - name: 📦 Instalar dependencias - payment
+        working-directory: payment
+        run: npm ci
+
+      - name: 🧪 Ejecutar pruebas - payment
+        working-directory: payment
+        run: npm run test:cov
+
+  sonar-analysis:
+    name: Análisis con SonarCloud
+    runs-on: ubuntu-latest
+    needs: run-tests
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v3
+
+      - name: 🟢 Configurar Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: 📦 Instalar dependencias - atm
+        working-directory: atm
+        run: npm ci
+
+      - name: 📦 Instalar dependencias - payment
+        working-directory: payment
+        run: npm ci
+
+      - name: ☁️ Análisis SonarCloud conjunto (mono-repo)
+        uses: SonarSource/sonarqube-scan-action@v2.0.2
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.projectKey=agreda_2lab3
+            -Dsonar.organization=agreda
+            -Dsonar.sources=atm/libs/domain/src,payment/libs/domain/src
+            -Dsonar.javascript.lcov.reportPaths=atm/coverage/lcov.info,payment/coverage/lcov.info
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+
+  npm-publish:
+    name: Publicar paquete en GitHub Packages
+    runs-on: ubuntu-latest
+    needs: sonar-analysis
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v3
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          registry-url: 'https://npm.pkg.github.com/'
+          scope: '@${{ github.repository_owner }}'
+
+      - name: 📦 Instalar dependencias del paquete
+        working-directory: payment
+        run: npm ci
+
+      - name: 🔄 Incrementar versión con timestamp único
+        working-directory: payment/libs/domain
+        run: |
+          VERSION="1.0.$(date +%s)"
+          npm version "$VERSION" --no-git-tag-version
+          echo "📦 Versión generada: $VERSION"
+          cat package.json
+
+      - name: 🚀 Publicar en GitHub Packages (npm, no nuget)
+        working-directory: payment/libs/domain
+        run: npm publish --access=public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

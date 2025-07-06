@@ -1,0 +1,24 @@
+{
+  "name": "@UPT-FAING-EPIS/atm_domain_contreras",
+  "version": "1.0.0",
+  "main": "dist/libs/domain/index.js",
+  "types": "dist/libs/domain/index.d.ts",
+  "license": "MIT",
+  "scripts": {
+    "ci": "npm ci",
+    "test": "jest",
+    "test:cov": "jest --coverage"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/UPT-FAING-EPIS/lab-2025-i-pds-u2-03-nest-AlvaroContreras13-1.git"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  }
+}
